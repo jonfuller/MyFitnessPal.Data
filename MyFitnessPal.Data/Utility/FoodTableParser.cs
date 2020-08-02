@@ -2,6 +2,7 @@
 using System.Linq;
 using AngleSharp.Html.Dom;
 using MyFitnessPal.Data.Model;
+using MyFitnessPal.Data.Pages;
 using NodaTime;
 using UnitsNet;
 
@@ -13,23 +14,27 @@ namespace MyFitnessPal.Data.Utility
         {
             return new DayOfFood(
                 date,
-                GetFoodFor("Breakfast"),
-                GetFoodFor("Lunch"),
-                GetFoodFor("Dinner"),
-                GetFoodFor("Snacks"),
+                GetFoodFor(PrintableDiaryPage.Selectors.BreakfastSectionText),
+                GetFoodFor(PrintableDiaryPage.Selectors.LunchSectionText),
+                GetFoodFor(PrintableDiaryPage.Selectors.DinnerSectionText),
+                GetFoodFor(PrintableDiaryPage.Selectors.SnackSectionText),
                 ParseFooter(foodTable.Foot));
 
-            IEnumerable<FoodItem> GetFoodFor(string sectionName) => FindRowsForSection(sectionName, foodTable.Rows).Select(ParseFoodItem);
+            IEnumerable<FoodItem> GetFoodFor(string sectionName) => FindRowsForSection(sectionName, foodTable.Bodies.First().Rows).Select(ParseFoodItem);
 
             static IEnumerable<IHtmlTableRowElement> FindRowsForSection(string section, IEnumerable<IHtmlTableRowElement> rows)
             {
-                var rowsLeft = rows.SkipWhile(r => r.ClassName != "title" && r.Cells.First().TextContent == section);
-                var sectionRows = rowsLeft
-                   .Skip(1)
-                   .TakeWhile(r => r.Cells.Length > 1);
-
-                return sectionRows;
+                return rows
+                   .SkipWhile(r => !IsSectionRow(r, section))
+                   .Skip(1) // skip the section row
+                   .TakeWhile(r => r.Cells.Length > 1) // take until the next section row
+                   .ToList();
             }
+
+            static bool IsSectionRow(IHtmlTableRowElement row, string section) =>
+                row.ClassName == PrintableDiaryPage.Selectors.MealSectionTableRowClass &&
+                row.Cells.Length == 1 &&
+                row.Cells.First().TextContent == section;
         }
 
         private static FoodSummary ParseFooter(IHtmlTableSectionElement footer)

@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
@@ -16,18 +17,21 @@ namespace MyFitnessPal.Data.Pages
             _context = context;
         }
 
-        public async Task<IDocument> Login(string username, string password)
+        public IDocument Login(string username, string password)
         {
-            var loginPage = await _context.OpenAsync(Url);
+            var loginPageTask = _context.OpenAsync(Url);
+            loginPageTask.Wait(TimeSpan.FromSeconds(30));
 
-            var form = loginPage.QuerySelector<IHtmlFormElement>(Selectors.LoginForm);
+            var form = loginPageTask.Result.QuerySelector<IHtmlFormElement>(Selectors.LoginForm);
 
             form.QuerySelector<IHtmlInputElement>(Selectors.Username).Value = username;
             form.QuerySelector<IHtmlInputElement>(Selectors.Password).Value = password;
 
-            var result = await form.SubmitAsync();
+            var submission = form.SubmitAsync();
+            submission.Wait(TimeSpan.FromSeconds(30));
 
-            await result.WaitForReadyAsync();
+            var result = submission.Result;
+            result.WaitForReadyAsync().Wait(TimeSpan.FromSeconds(30));
 
             return result;
         }

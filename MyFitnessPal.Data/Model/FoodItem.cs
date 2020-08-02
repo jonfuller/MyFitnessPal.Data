@@ -28,4 +28,38 @@ namespace MyFitnessPal.Data.Model
             Fiber = fiber;
         }
     }
+    public class MealFoodItem : Record<MealFoodItem>
+    {
+        public readonly Meal Meal;
+        public readonly string Name;
+        public readonly Energy Energy;
+        public readonly Mass Protein;
+        public readonly Mass Fat;
+        public readonly Mass Carbohydrates;
+        public readonly Mass Cholesterol;
+        public readonly Mass Sodium;
+        public readonly Mass Sugars;
+        public readonly Mass Fiber;
+
+        public MealFoodItem(Meal meal, string name, Energy energy, Mass protein, Mass fat, Mass carbohydrates, Mass cholesterol, Mass sodium, Mass sugars, Mass fiber)
+        {
+            Meal = meal;
+            Name = name;
+            Energy = energy;
+            Protein = protein;
+            Fat = fat;
+            Carbohydrates = carbohydrates;
+            Cholesterol = cholesterol;
+            Sodium = sodium;
+            Sugars = sugars;
+            Fiber = fiber;
+        }
+    }
+    public enum Meal
+    {
+        Breakfast,
+        Lunch,
+        Dinner,
+        Snack
+    }
 }
