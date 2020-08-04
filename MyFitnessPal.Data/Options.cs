@@ -1,5 +1,7 @@
 ﻿using System;
+using System.IO;
 using CommandLine;
+using MyFitnessPal.Data.Utility.Output;
 using NodaTime;
 
 namespace MyFitnessPal.Data
@@ -13,14 +15,23 @@ namespace MyFitnessPal.Data
         public string Password { get; set; }
     }
 
-    [Verb("export", HelpText = "Full export of nutrition information.")]
-    public class FullExportOptions : DailySummaryOptions
+    public class OutputOptions : LoginOptions
     {
+        [Option('f', "format", Required = false, Default = OutputType.csv, HelpText = "Format of output.")]
+        public OutputType OutputFormat { get; set; }
 
+        public enum OutputType
+        {
+            csv,
+            table
+        }
+
+        public IOutputWriter OutputWriter(TextWriter output) => OutputFormat == OutputType.csv
+            ? (IOutputWriter)new CsvOutputWriter(output)
+            : new TableOutputWriter(output);
     }
 
-    [Verb("daily", HelpText = "Daily macro summary.")]
-    public class DailySummaryOptions : LoginOptions
+    public class DateRangeOptions : OutputOptions
     {
         [Option('d', "date", Required = true, HelpText = "The date used as basis for fetching nutrition history from MyFitnessPal.")]
         public DateTime AnchorDateRaw { get; set; }
@@ -31,5 +42,16 @@ namespace MyFitnessPal.Data
         public DateInterval DateRange => new DateInterval(
             start: LocalDate.FromDateTime(AnchorDateRaw).PlusDays(-DaysOfHistory),
             end: LocalDate.FromDateTime(AnchorDateRaw));
+    }
+
+    [Verb("export", HelpText = "Full export of nutrition information.")]
+    public class FullExportOptions : DateRangeOptions
+    {
+
+    }
+
+    [Verb("daily", HelpText = "Daily macro summary.")]
+    public class DailySummaryOptions : DateRangeOptions
+    {
     }
 }

@@ -3,47 +3,52 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using AngleSharp;
-using CsvHelper;
-using CsvHelper.Configuration;
 using MyFitnessPal.Data.Model;
 using MyFitnessPal.Data.Pages;
+using MyFitnessPal.Data.Utility;
 using NodaTime;
 
 namespace MyFitnessPal.Data
 {
     public class Runner
     {
-        private readonly TextWriter _stdOut;
+        private readonly TextWriter _output;
 
-        public Runner(TextWriter stdOut)
+        public Runner(TextWriter output)
         {
-            _stdOut = stdOut;
+            _output = output;
         }
 
         public ExitCode FullExport(FullExportOptions opts)
         {
-            WriteCsv(FetchData(opts.Username, opts.Password, opts.DateRange).SelectMany(day => day.All.Select(food => new
+            FetchData(opts.Username, opts.Password, opts.DateRange)
+               .Then(Flatten)
+               .ThenMap(x => new
                 {
-                    Date = day.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                    food.Meal,
-                    Food = food.Name,
-                    food.Energy.Calories,
-                    Protein = food.Protein.Grams,
-                    Carbs = food.Carbohydrates.Grams,
-                    Fat = food.Fat.Grams,
-                    Cholesterol = food.Cholesterol.Milligrams,
-                    Sodium = food.Sodium.Milligrams,
-                    Sugars = food.Sugars.Grams,
-                    Fiber = food.Fiber.Grams,
-                }))
-               .ToList());
+                    Date = x.date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    x.food.Meal,
+                    Food = x.food.Name,
+                    x.food.Energy.Calories,
+                    Protein = x.food.Protein.Grams,
+                    Carbs = x.food.Carbohydrates.Grams,
+                    Fat = x.food.Fat.Grams,
+                    Cholesterol = x.food.Cholesterol.Milligrams,
+                    Sodium = x.food.Sodium.Milligrams,
+                    Sugars = x.food.Sugars.Grams,
+                    Fiber = x.food.Fiber.Grams,
+                })
+               .Then(opts.OutputWriter(_output).Write);
 
             return ExitCode.Success;
+
+            static IEnumerable<(LocalDate date, MealFoodItem food)> Flatten(IEnumerable<DayOfFood> data) =>
+                data.SelectMany(day => day.All.Select(food => (day.Date, food)));
         }
 
         public ExitCode DailySummary(DailySummaryOptions opts)
         {
-            WriteCsv(FetchData(opts.Username, opts.Password, opts.DateRange).Select(x => new
+            FetchData(opts.Username, opts.Password, opts.DateRange)
+               .ThenMap(x => new
                 {
                     Date = x.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
                     x.Totals.Energy.Calories,
@@ -51,7 +56,7 @@ namespace MyFitnessPal.Data
                     Carbs = x.Totals.Carbohydrates.Grams,
                     Fat = x.Totals.Fat.Grams
                 })
-               .ToList());
+               .Then(opts.OutputWriter(_output).Write);
 
             return ExitCode.Success;
         }
@@ -66,14 +71,6 @@ namespace MyFitnessPal.Data
             return dates
                .Select(d => new PrintableDiaryPage(context, d).Fetch())
                .Somes();
-        }
-
-        private void WriteCsv<T>(ICollection<T> records)
-        {
-            using (var csv = new CsvWriter(_stdOut, new CsvConfiguration(CultureInfo.InvariantCulture), true))
-            {
-                csv.WriteRecords(records);
-            }
         }
     }
 }
