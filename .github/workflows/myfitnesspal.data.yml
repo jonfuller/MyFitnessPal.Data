@@ -33,3 +33,22 @@ jobs:
       with:
         name: nupkg
         path: MyFitnessPal.Data/nupkg/**/*.nupkg
+
+  release:
+    name: Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/release-')
+
+    steps:
+    - name: Setup NuGet.exe for use with actions
+      uses: NuGet/setup-nuget@v1.0.2
+      with:
+        nuget-api-key: ${{ secrets.NUGET_API_KEY }}
+
+    - uses: actions/download-artifact@v2
+      with:
+        name: nupkg
+
+    - name: Publish
+      run: nuget push /**/*.nupkg -Source https://www.nuget.org
