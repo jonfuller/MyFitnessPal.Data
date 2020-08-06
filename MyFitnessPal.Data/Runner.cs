@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -49,10 +50,10 @@ namespace MyFitnessPal.Data
                .ThenMap(grp => new
                 {
                     Date = grp.Key.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                    Calories = SumEnergy(grp.Select(x => x.Energy)).Calories,
-                    Protein = SumMass(grp.Select(x => x.Protein)).Grams,
-                    Carbs= SumMass(grp.Select(x => x.Carbohydrates)).Grams,
-                    Fat = SumMass(grp.Select(x => x.Fat)).Grams,
+                    Calories = Math.Round(SumEnergy(grp.Select(x => x.Energy)).Calories),
+                    Protein = Math.Round(SumMass(grp.Select(x => x.Protein)).Grams),
+                    Carbs= Math.Round(SumMass(grp.Select(x => x.Carbohydrates)).Grams),
+                    Fat = Math.Round(SumMass(grp.Select(x => x.Fat)).Grams),
                })
                .Then(opts.OutputWriter(_output).Write);
 
