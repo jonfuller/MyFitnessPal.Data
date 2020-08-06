@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using AngleSharp.Common;
 using AngleSharp.Html.Dom;
 using MyFitnessPal.Data.Model;
 using MyFitnessPal.Data.Pages;
@@ -10,49 +11,28 @@ namespace MyFitnessPal.Data.Utility
 {
     public static class FoodTableParser
     {
-        public static DayOfFood ParseTable(IHtmlTableElement foodTable, LocalDate date)
+        public static IEnumerable<FoodItem> ParseTable(IHtmlTableElement foodTable, LocalDate date)
         {
-            return new DayOfFood(
-                date,
-                GetFoodFor(PrintableDiaryPage.Selectors.BreakfastSectionText),
-                GetFoodFor(PrintableDiaryPage.Selectors.LunchSectionText),
-                GetFoodFor(PrintableDiaryPage.Selectors.DinnerSectionText),
-                GetFoodFor(PrintableDiaryPage.Selectors.SnackSectionText),
-                ParseFooter(foodTable.Foot));
+            var allRows = foodTable.Bodies.First().Rows;
+            var seed = (currentSection: "none", rows: Enumerable.Empty<FoodItem>());
 
-            IEnumerable<FoodItem> GetFoodFor(string sectionName) => FindRowsForSection(sectionName, foodTable.Bodies.First().Rows).Select(ParseFoodItem);
+            return allRows.Aggregate(seed,
+                (acc, currentRow) =>
+                {
+                    var (currentSection, rows) = acc;
 
-            static IEnumerable<IHtmlTableRowElement> FindRowsForSection(string section, IEnumerable<IHtmlTableRowElement> rows)
-            {
-                return rows
-                   .SkipWhile(r => !IsSectionRow(r, section))
-                   .Skip(1) // skip the section row
-                   .TakeWhile(r => r.Cells.Length > 1) // take until the next section row
-                   .ToList();
-            }
+                    return IsSectionRow(currentRow)
+                        ? (currentRow.TextContent.Trim(), rows)
+                        : (currentSection, rows.Concat(ParseMealFoodItem(currentRow, currentSection, date)));
+                },
+                result => result.rows.ToList());
 
-            static bool IsSectionRow(IHtmlTableRowElement row, string section) =>
+            static bool IsSectionRow(IHtmlTableRowElement row) =>
                 row.ClassName == PrintableDiaryPage.Selectors.MealSectionTableRowClass &&
-                row.Cells.Length == 1 &&
-                row.Cells.First().TextContent == section;
+                row.Cells.Length == 1;
         }
 
-        private static FoodSummary ParseFooter(IHtmlTableSectionElement footer)
-        {
-            var item = ParseFoodItem(footer.Rows.First());
-
-            return new FoodSummary(
-                item.Energy,
-                item.Protein,
-                item.Fat,
-                item.Carbohydrates,
-                item.Cholesterol,
-                item.Sodium,
-                item.Sugars,
-                item.Fiber);
-        }
-
-        private static FoodItem ParseFoodItem(IHtmlTableRowElement row)
+        private static FoodItem ParseMealFoodItem(IHtmlTableRowElement row, string meal, LocalDate date)
         {
             var name = row.Cells[0].TextContent;
             var calories = row.Cells[1].TextContent;
@@ -65,6 +45,8 @@ namespace MyFitnessPal.Data.Utility
             var fiber = row.Cells[8].TextContent;
 
             return new FoodItem(
+                date,
+                meal,
                 name,
                 Energy.FromCalories(int.Parse(Clean(calories))),
                 Mass.Parse(Clean(protein)),

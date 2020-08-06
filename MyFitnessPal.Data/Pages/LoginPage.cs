@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading.Tasks;
 using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;

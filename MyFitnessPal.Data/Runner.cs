@@ -7,6 +7,7 @@ using MyFitnessPal.Data.Model;
 using MyFitnessPal.Data.Pages;
 using MyFitnessPal.Data.Utility;
 using NodaTime;
+using UnitsNet;
 
 namespace MyFitnessPal.Data
 {
@@ -22,55 +23,53 @@ namespace MyFitnessPal.Data
         public ExitCode FullExport(FullExportOptions opts)
         {
             FetchData(opts.Username, opts.Password, opts.DateRange)
-               .Then(Flatten)
                .ThenMap(x => new
                 {
-                    Date = x.date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                    x.food.Meal,
-                    Food = x.food.Name,
-                    x.food.Energy.Calories,
-                    Protein = x.food.Protein.Grams,
-                    Carbs = x.food.Carbohydrates.Grams,
-                    Fat = x.food.Fat.Grams,
-                    Cholesterol = x.food.Cholesterol.Milligrams,
-                    Sodium = x.food.Sodium.Milligrams,
-                    Sugars = x.food.Sugars.Grams,
-                    Fiber = x.food.Fiber.Grams,
+                    Date = x.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    x.Meal,
+                    Food = x.Name,
+                    x.Energy.Calories,
+                    Protein = x.Protein.Grams,
+                    Carbs = x.Carbohydrates.Grams,
+                    Fat = x.Fat.Grams,
+                    Cholesterol = x.Cholesterol.Milligrams,
+                    Sodium = x.Sodium.Milligrams,
+                    Sugars = x.Sugars.Grams,
+                    Fiber = x.Fiber.Grams,
                 })
                .Then(opts.OutputWriter(_output).Write);
 
             return ExitCode.Success;
-
-            static IEnumerable<(LocalDate date, MealFoodItem food)> Flatten(IEnumerable<DayOfFood> data) =>
-                data.SelectMany(day => day.All.Select(food => (day.Date, food)));
         }
 
         public ExitCode DailySummary(DailySummaryOptions opts)
         {
             FetchData(opts.Username, opts.Password, opts.DateRange)
-               .ThenMap(x => new
+               .Then(x => x.GroupBy(y => y.Date))
+               .ThenMap(grp => new
                 {
-                    Date = x.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                    x.Totals.Energy.Calories,
-                    Protein = x.Totals.Protein.Grams,
-                    Carbs = x.Totals.Carbohydrates.Grams,
-                    Fat = x.Totals.Fat.Grams
-                })
+                    Date = grp.Key.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    Calories = SumEnergy(grp.Select(x => x.Energy)).Calories,
+                    Protein = SumMass(grp.Select(x => x.Protein)).Grams,
+                    Carbs= SumMass(grp.Select(x => x.Carbohydrates)).Grams,
+                    Fat = SumMass(grp.Select(x => x.Fat)).Grams,
+               })
                .Then(opts.OutputWriter(_output).Write);
 
             return ExitCode.Success;
+
+            static Energy SumEnergy(IEnumerable<Energy> source) => source.Aggregate(Energy.Zero, (a, b) => a + b);
+            static Mass SumMass(IEnumerable<Mass> source) => source.Aggregate(Mass.Zero, (a, b) => a + b);
         }
 
-        private static IEnumerable<DayOfFood> FetchData(string username, string password, DateInterval dates)
+        private static IEnumerable<FoodItem> FetchData(string username, string password, DateInterval dates)
         {
             var context = BrowsingContext.New(Configuration.Default.WithDefaultLoader().WithDefaultCookies());
             var loginPage = new LoginPage(context);
 
             loginPage.Login(username, password);
 
-            return dates
-               .Select(d => new PrintableDiaryPage(context, d).Fetch())
-               .Somes();
+            return dates.SelectMany(d => new PrintableDiaryPage(context, d).Fetch());
         }
     }
 }
