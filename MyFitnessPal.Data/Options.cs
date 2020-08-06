@@ -33,15 +33,17 @@ namespace MyFitnessPal.Data
 
     public class DateRangeOptions : OutputOptions
     {
-        [Option('d', "date", Required = true, HelpText = "The date used as basis for fetching nutrition history from MyFitnessPal.")]
-        public DateTime AnchorDateRaw { get; set; }
+        [Option('d', "date", Required = false, HelpText = "The date used as basis for fetching nutrition history from MyFitnessPal. Defaults to yesterday.")]
+        public DateTime? AnchorDateRaw { get; set; }
 
         [Option('n', "num-days", Required = false, HelpText = "Number of days to fetch history for, starting at \"date\" and going back in time.", Default = 1)]
         public int DaysOfHistory { get; set; }
 
+        private LocalDate DefaultedAnchorDate => LocalDate.FromDateTime(AnchorDateRaw ?? DateTime.Today.Subtract(TimeSpan.FromDays(1)));
+
         public DateInterval DateRange => new DateInterval(
-            start: LocalDate.FromDateTime(AnchorDateRaw).PlusDays(-DaysOfHistory),
-            end: LocalDate.FromDateTime(AnchorDateRaw));
+            start: DefaultedAnchorDate.PlusDays(-DaysOfHistory + 1),
+            end: DefaultedAnchorDate);
     }
 
     [Verb("export", HelpText = "Full export of nutrition information.")]
