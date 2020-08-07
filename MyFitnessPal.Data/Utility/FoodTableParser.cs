@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using AngleSharp;
 using AngleSharp.Common;
 using AngleSharp.Html.Dom;
+using Microsoft.Extensions.Logging;
 using MyFitnessPal.Data.Model;
 using MyFitnessPal.Data.Pages;
 using NodaTime;
@@ -11,10 +13,13 @@ namespace MyFitnessPal.Data.Utility
 {
     public static class FoodTableParser
     {
-        public static IEnumerable<FoodItem> ParseTable(IHtmlTableElement foodTable, LocalDate date)
+        public static IEnumerable<FoodItem> ParseTable(IHtmlTableElement foodTable, LocalDate date, ILogger logger)
         {
             var allRows = foodTable.Bodies.First().Rows;
             var seed = (currentSection: "none", rows: Enumerable.Empty<FoodItem>());
+
+            logger.LogDebug($"found {allRows.Length} row(s) in food table");
+            logger.LogTrace($"parsing food table {foodTable.ToHtml()}");
 
             return allRows.Aggregate(seed,
                 (acc, currentRow) =>
@@ -23,17 +28,27 @@ namespace MyFitnessPal.Data.Utility
 
                     return IsSectionRow(currentRow)
                         ? (currentRow.TextContent.Trim(), rows)
-                        : (currentSection, rows.Concat(ParseMealFoodItem(currentRow, currentSection, date)));
+                        : (currentSection, rows.Concat(ParseMealFoodItem(currentRow, currentSection, date, logger)));
                 },
-                result => result.rows.ToList());
+                result =>
+                {
+                    var foodItems = result.rows.ToList();
+                    var numMeals = result.rows.Select(f => f.Meal).Distinct().Count();
+
+                    logger.LogDebug($"found {foodItems.Count} foods, {numMeals} meals for {date}");
+
+                    return foodItems;
+                });
 
             static bool IsSectionRow(IHtmlTableRowElement row) =>
                 row.ClassName == PrintableDiaryPage.Selectors.MealSectionTableRowClass &&
                 row.Cells.Length == 1;
         }
 
-        private static FoodItem ParseMealFoodItem(IHtmlTableRowElement row, string meal, LocalDate date)
+        private static FoodItem ParseMealFoodItem(IHtmlTableRowElement row, string meal, LocalDate date, ILogger logger)
         {
+            logger.LogTrace($"parsing food row {row.ToHtml()}");
+
             var name = row.Cells[0].TextContent;
             var calories = row.Cells[1].TextContent;
             var carbs = row.Cells[2].TextContent;

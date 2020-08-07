@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using AngleSharp;
+using Microsoft.Extensions.Logging;
 using MyFitnessPal.Data.Model;
 using MyFitnessPal.Data.Pages;
 using MyFitnessPal.Data.Utility;
@@ -15,10 +16,14 @@ namespace MyFitnessPal.Data
     public class Runner
     {
         private readonly TextWriter _output;
+        private readonly ILoggerFactory _loggerFactory;
+        private ILogger<Runner> _logger;
 
-        public Runner(TextWriter output)
+        public Runner(TextWriter output, ILoggerFactory loggerFactory)
         {
             _output = output;
+            _loggerFactory = loggerFactory;
+            _logger = loggerFactory.CreateLogger<Runner>();
         }
 
         public ExitCode FullExport(FullExportOptions opts)
@@ -63,14 +68,20 @@ namespace MyFitnessPal.Data
             static Mass SumMass(IEnumerable<Mass> source) => source.Aggregate(Mass.Zero, (a, b) => a + b);
         }
 
-        private static IEnumerable<FoodItem> FetchData(string username, string password, DateInterval dates)
+        private IEnumerable<FoodItem> FetchData(string username, string password, DateInterval dates)
         {
             var context = BrowsingContext.New(Configuration.Default.WithDefaultLoader().WithDefaultCookies());
-            var loginPage = new LoginPage(context);
+            var loginPage = new LoginPage(context, _loggerFactory);
 
+            _logger.LogInformation($"ready to get data for {username} for dates: {dates.Start} - {dates.End}.");
+            _logger.LogInformation($"attempting login for user {username}.");
             loginPage.Login(username, password);
 
-            return dates.SelectMany(d => new PrintableDiaryPage(context, d).Fetch());
+            return dates.SelectMany(d =>
+            {
+                _logger.LogInformation($"fetching printable diary for {d}.");
+                return new PrintableDiaryPage(context, d, _loggerFactory).Fetch();
+            });
         }
     }
 }

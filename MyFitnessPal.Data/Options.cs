@@ -1,12 +1,19 @@
 ﻿using System;
 using System.IO;
 using CommandLine;
+using Microsoft.Extensions.Logging;
 using MyFitnessPal.Data.Utility.Output;
 using NodaTime;
 
 namespace MyFitnessPal.Data
 {
-    public class LoginOptions
+    public class Options
+    {
+        [Option('v', "verbosity", Required = false, Default = LogLevel.None, HelpText = "Log level. (https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.logging.loglevel)")]
+        public LogLevel LogVerbosity { get; set; }
+    }
+
+    public class LoginOptions : Options
     {
         [Option('u', "username", Required = true, HelpText = "MyFitnessPal username.")]
         public string Username { get; set; }
@@ -33,7 +40,7 @@ namespace MyFitnessPal.Data
 
     public class DateRangeOptions : OutputOptions
     {
-        [Option('d', "date", Required = false, HelpText = "The date used as basis for fetching nutrition history from MyFitnessPal. Defaults to yesterday.")]
+        [Option('d', "date", Required = false, HelpText = "(Default: yesterday) The date used as basis for fetching nutrition history from MyFitnessPal.")]
         public DateTime? AnchorDateRaw { get; set; }
 
         [Option('n', "num-days", Required = false, HelpText = "Number of days to fetch history for, starting at \"date\" and going back in time.", Default = 1)]

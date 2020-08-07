@@ -2,6 +2,7 @@
 using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
+using Microsoft.Extensions.Logging;
 
 namespace MyFitnessPal.Data.Pages
 {
@@ -10,14 +11,20 @@ namespace MyFitnessPal.Data.Pages
         private const string Url = "https://www.myfitnesspal.com/account/login";
 
         private readonly IBrowsingContext _context;
+        private readonly ILogger<LoginPage> _logger;
 
-        public LoginPage(IBrowsingContext context)
+        public LoginPage(IBrowsingContext context, ILoggerFactory loggerFactory)
         {
             _context = context;
+            _logger = loggerFactory.CreateLogger<LoginPage>();
         }
 
         public IDocument Login(string username, string password)
         {
+            _logger.LogDebug("opening login form");
+            _logger.LogDebug($"username: {username}");
+            _logger.LogDebug($"password length: {password.Length}");
+
             var loginPageTask = _context.OpenAsync(Url);
             loginPageTask.Wait(TimeSpan.FromSeconds(30));
 
@@ -26,6 +33,7 @@ namespace MyFitnessPal.Data.Pages
             form.QuerySelector<IHtmlInputElement>(Selectors.Username).Value = username;
             form.QuerySelector<IHtmlInputElement>(Selectors.Password).Value = password;
 
+            _logger.LogDebug("submitting login form");
             var submission = form.SubmitAsync();
             submission.Wait(TimeSpan.FromSeconds(30));
 
