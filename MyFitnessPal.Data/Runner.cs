@@ -17,7 +17,7 @@ namespace MyFitnessPal.Data
     {
         private readonly TextWriter _output;
         private readonly ILoggerFactory _loggerFactory;
-        private ILogger<Runner> _logger;
+        private readonly ILogger<Runner> _logger;
 
         public Runner(TextWriter output, ILoggerFactory loggerFactory)
         {

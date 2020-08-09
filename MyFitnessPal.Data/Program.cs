@@ -1,18 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
 using CommandLine;
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.Channel;
+using Microsoft.ApplicationInsights.Extensibility;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
+using MyFitnessPal.Data.Utility;
 
 namespace MyFitnessPal.Data
 {
     class Program
     {
+        public const string InstrumentationKey = "1ded601c-6f94-47de-af35-6801ce8dc0fb";
+
         static int Main(string[] args)
         {
+            var serviceProvider = ConfigureContainer();
+            var telemetry = serviceProvider.GetRequiredService<TelemetryClient>();
+
             var parsed = Parser.Default.ParseArguments<FullExportOptions, DailySummaryOptions>(args);
 
-            var runner = new Runner(Console.Out, GetLoggerFactory(GetLogLevel(parsed)));
+            var runner = new AnalyticsRunner(telemetry, new Runner(Console.Out, GetLoggerFactory(GetLogLevel(parsed))));
 
             var exitCode = parsed
                .MapResult(
@@ -48,6 +58,22 @@ namespace MyFitnessPal.Data
         static ExitCode Err(IEnumerable<Error> parseErrors)
         {
             return ExitCode.GeneralError;
+        }
+
+        private static IServiceProvider ConfigureContainer()
+        {
+            return new ServiceCollection()
+               .AddSingleton<ITelemetryChannel>(new InMemoryChannel())
+               .AddApplicationInsightsTelemetryWorkerService(opts =>
+                {
+                    opts.InstrumentationKey = InstrumentationKey;
+                    opts.ApplicationVersion = typeof(Program).Assembly.GetName().Version.ToString();
+                })
+               .AddSingleton(typeof(ITelemetryInitializer), TelemetryInitializer.Create(x => {
+                    x.Context.User.Id = AnalyticsHelpers.GetUserId();
+                    x.Context.Device.OperatingSystem = Environment.OSVersion.ToString();
+                }))
+               .BuildServiceProvider();
         }
     }
 }

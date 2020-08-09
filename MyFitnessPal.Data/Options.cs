@@ -2,6 +2,7 @@
 using System.IO;
 using CommandLine;
 using Microsoft.Extensions.Logging;
+using MyFitnessPal.Data.Utility;
 using MyFitnessPal.Data.Utility.Output;
 using NodaTime;
 
@@ -19,6 +20,7 @@ namespace MyFitnessPal.Data
         public string Username { get; set; }
 
         [Option('p', "password", Required = true, HelpText = "MyFitnessPal password.")]
+        [NoAnalytics]
         public string Password { get; set; }
     }
 
