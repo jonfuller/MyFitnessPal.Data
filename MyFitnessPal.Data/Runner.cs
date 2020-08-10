@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using AngleSharp;
+using LanguageExt;
 using Microsoft.Extensions.Logging;
 using MyFitnessPal.Data.Model;
 using MyFitnessPal.Data.Pages;
@@ -28,60 +29,73 @@ namespace MyFitnessPal.Data
 
         public ExitCode FullExport(FullExportOptions opts)
         {
-            FetchData(opts.Username, opts.Password, opts.DateRange)
-               .ThenMap(x => new
-                {
-                    Date = x.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                    x.Meal,
-                    Food = x.Name,
-                    x.Energy.Calories,
-                    Protein = x.Protein.Grams,
-                    Carbs = x.Carbohydrates.Grams,
-                    Fat = x.Fat.Grams,
-                    Cholesterol = x.Cholesterol.Milligrams,
-                    Sodium = x.Sodium.Milligrams,
-                    Sugars = x.Sugars.Grams,
-                    Fiber = x.Fiber.Grams,
-                })
-               .Then(opts.OutputWriter(_output).Write);
-
-            return ExitCode.Success;
+            return FetchData(opts.Username, opts.Password, opts.DateRange)
+               .Map(foods => foods
+                   .Select(x => new
+                    {
+                        Date = x.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                        x.Meal,
+                        Food = x.Name,
+                        x.Energy.Calories,
+                        Protein = x.Protein.Grams,
+                        Carbs = x.Carbohydrates.Grams,
+                        Fat = x.Fat.Grams,
+                        Cholesterol = x.Cholesterol.Milligrams,
+                        Sodium = x.Sodium.Milligrams,
+                        Sugars = x.Sugars.Grams,
+                        Fiber = x.Fiber.Grams,
+                    })
+                   .Then(opts.OutputWriter(_output).Write))
+               .Match(
+                    Left: _ => _,
+                    Right: _ => ExitCode.Success);
         }
 
         public ExitCode DailySummary(DailySummaryOptions opts)
         {
-            FetchData(opts.Username, opts.Password, opts.DateRange)
-               .Then(x => x.GroupBy(y => y.Date))
-               .ThenMap(grp => new
-                {
-                    Date = grp.Key.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                    Calories = Math.Round(SumEnergy(grp.Select(x => x.Energy)).Calories),
-                    Protein = Math.Round(SumMass(grp.Select(x => x.Protein)).Grams),
-                    Carbs= Math.Round(SumMass(grp.Select(x => x.Carbohydrates)).Grams),
-                    Fat = Math.Round(SumMass(grp.Select(x => x.Fat)).Grams),
-               })
-               .Then(opts.OutputWriter(_output).Write);
-
-            return ExitCode.Success;
+            return FetchData(opts.Username, opts.Password, opts.DateRange)
+               .Map(foods => foods
+                   .GroupBy(y => y.Date)
+                   .Select(grp => new
+                    {
+                        Date = grp.Key.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                        Calories = Math.Round(SumEnergy(grp.Select(x => x.Energy)).Calories),
+                        Protein = Math.Round(SumMass(grp.Select(x => x.Protein)).Grams),
+                        Carbs= Math.Round(SumMass(grp.Select(x => x.Carbohydrates)).Grams),
+                        Fat = Math.Round(SumMass(grp.Select(x => x.Fat)).Grams),
+                   })
+                   .Then(opts.OutputWriter(_output).Write))
+               .Match(
+                    Left: _ => _,
+                    Right: _ => ExitCode.Success);
 
             static Energy SumEnergy(IEnumerable<Energy> source) => source.Aggregate(Energy.Zero, (a, b) => a + b);
             static Mass SumMass(IEnumerable<Mass> source) => source.Aggregate(Mass.Zero, (a, b) => a + b);
         }
 
-        private IEnumerable<FoodItem> FetchData(string username, string password, DateInterval dates)
+        private Either<ExitCode, IEnumerable<FoodItem>> FetchData(string username, string password, DateInterval dates)
         {
             var context = BrowsingContext.New(Configuration.Default.WithDefaultLoader().WithDefaultCookies());
             var loginPage = new LoginPage(context, _loggerFactory);
 
             _logger.LogInformation($"ready to get data for {username} for dates: {dates.Start} - {dates.End}.");
             _logger.LogInformation($"attempting login for user {username}.");
-            loginPage.Login(username, password);
+            return loginPage
+               .Login(username, password)
+               .ToEither(ExitCode.BadLogin)
+               .Map(_ => GetData());
 
-            return dates.SelectMany(d =>
+            IEnumerable<FoodItem> GetData()
             {
-                _logger.LogInformation($"fetching printable diary for {d}.");
-                return new PrintableDiaryPage(context, d, _loggerFactory).Fetch();
-            });
+                return dates
+                   .Select(d =>
+                    {
+                        _logger.LogInformation($"fetching printable diary for {d}.");
+                        return new PrintableDiaryPage(context, _loggerFactory).Fetch(d);
+                    })
+                   .Somes()
+                   .SelectMany(x => x);
+            }
         }
     }
 }
