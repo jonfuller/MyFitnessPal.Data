@@ -8,7 +8,6 @@ on:
           days-back:
             description: 'Number of days back to go'
             required: false
-            default: 1
 jobs:
   build:
 
