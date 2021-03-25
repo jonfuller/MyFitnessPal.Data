@@ -7,7 +7,7 @@ on:
     inputs:
           days-back:
             description: 'Number of days back to go'
-            required: true
+            required: false
             default: 1
 jobs:
   build:
