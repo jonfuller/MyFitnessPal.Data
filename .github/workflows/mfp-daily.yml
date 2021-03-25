@@ -20,7 +20,7 @@ jobs:
       with:
         dotnet-version: 3.0.x
     - name: Install MFP
-      run: dotnet tool install --global mfp --version 0.2.2
+      run: dotnet tool install --global mfp --version 0.2.3
     - name: Build
       run: mfp export --num-days=5 --format=csv --username=${{ secrets.MFP_USERNAME }} --password=${{ secrets.MFP_PASSWORD }} --verbosity=Trace
   
