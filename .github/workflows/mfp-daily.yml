@@ -1,0 +1,26 @@
+name: .NET
+
+on:
+  schedule:
+    - cron:  '12 3 * * *'
+  workflow_dispatch:
+    inputs:
+          days-back:
+            description: 'Number of days back to go'
+            required: true
+            default: 1
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+    - name: Install MFP
+      run: dotnet tool install --global mfp --version 0.2.2
+    - name: Build
+      run: mfp export --num-days=5 --format=csv --username=${{ secrets.MFP_USERNAME }} --password=${{ secrets.MFP_PASSWORD }}
+  
