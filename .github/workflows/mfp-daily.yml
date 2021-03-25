@@ -12,7 +12,7 @@ on:
 jobs:
   build:
 
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
     - name: Setup .NET
@@ -21,9 +21,9 @@ jobs:
         dotnet-version: 3.0.x
     - name: Install MFP
       run: dotnet tool install --global mfp --version 0.2.3
-    - shell: cmd
+    - shell: bash
       env:
         MFP_PASSWORD: ${{ secrets.MFP_PASSWORD }}
         MFP_USERNAME: ${{ secrets.MFP_USERNAME }}
       run: |
-        mfp export --num-days=5 --format=csv --username="%MFP_USERNAME%" --password="%MFP_PASSWORD%" --verbosity=Trace
+        mfp export --num-days=5 --format=csv --username="$MFP_USERNAME" --password="$MFP_PASSWORD" --verbosity=Trace
