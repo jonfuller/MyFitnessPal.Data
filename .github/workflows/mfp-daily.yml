@@ -26,4 +26,4 @@ jobs:
         MFP_PASSWORD: ${{ secrets.MFP_PASSWORD }}
         MFP_USERNAME: ${{ secrets.MFP_USERNAME }}
       run: |
-        mfp export --num-days=5 --format=csv --username="$MFP_USERNAME" --password="$MFP_PASSWORD" --verbosity=Trace
+        mfp export --num-days=5 --format=csv --username="$MFP_USERNAME" --password="$MFP_PASSWORD"
