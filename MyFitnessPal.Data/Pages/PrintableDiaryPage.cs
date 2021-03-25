@@ -33,6 +33,7 @@ namespace MyFitnessPal.Data.Pages
             reportsPage.WaitForReadyAsync().Wait(TimeSpan.FromSeconds(5));
 
             _logger.LogDebug($"fetching data from {urlForDate}");
+            _logger.LogTrace(reportsPage.ToHtml());
             var datePattern = LocalDatePattern.CreateWithInvariantCulture("MMMM d, yyyy");
             var dateRaw = reportsPage.QuerySelector<IHtmlHeadingElement>(Selectors.DateHeader).TextContent;
 
