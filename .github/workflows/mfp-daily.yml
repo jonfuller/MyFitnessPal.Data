@@ -1,4 +1,4 @@
-name: .NET
+name: MFP Daily Run
 
 on:
   schedule:
@@ -18,7 +18,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 5.0.x
+        dotnet-version: 3.0.x
     - name: Install MFP
       run: dotnet tool install --global mfp --version 0.2.2
     - name: Build
