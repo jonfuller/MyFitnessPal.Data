@@ -26,5 +26,5 @@ jobs:
         MFP_PASSWORD: ${{ secrets.MFP_PASSWORD }}
         MFP_USERNAME: ${{ secrets.MFP_USERNAME }}
       run: |
-        mfp export --num-days="${{ github.event.inputs.days-back || env.DAYS_BACK_DEFAULT }}" --format=csv --username="$MFP_USERNAME" --password="$MFP_PASSWORD"
+        mfp export --num-days="${{ github.event.inputs.days-back || env.DAYS_BACK_DEFAULT }}" --format=csv --username="$MFP_USERNAME" --password="$MFP_PASSWORD" > mfp.csv
         
