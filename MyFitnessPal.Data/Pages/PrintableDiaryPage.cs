@@ -41,6 +41,13 @@ namespace MyFitnessPal.Data.Pages
             if (parsed.Success)
             {
                 var foodTable = reportsPage.QuerySelector<IHtmlTableElement>(Selectors.FoodTable);
+
+                if (foodTable == null)
+                {
+                    _logger.LogWarning($"skipping {forDate}. No food table found (table: {Selectors.FoodTable})");
+                    return None;
+                }
+
                 return Some(FoodTableParser.ParseTable(foodTable, parsed.Value, _loggerFactory.CreateLogger(nameof(FoodTableParser))));
             }
 
