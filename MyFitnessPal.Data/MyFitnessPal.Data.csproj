@@ -10,11 +10,11 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>$(PackageId)</ToolCommandName>
 
-    <Version>0.2.3</Version>
+    <Version>0.2.4</Version>
     <FileVersion>$(Version)</FileVersion>
     <Authors>Jon Fuller</Authors>
     <Description>Nutrition exports (via web scraping) from MyFitnessPal.</Description>
-    <Copyright>Copyright © 2020</Copyright>
+    <Copyright>Copyright © 2021</Copyright>
     <Title>A simple command line tool for getting nutrition data out of MyFitnessPal by scraping "printable reports" from the MFP website.</Title>
   </PropertyGroup>
 
