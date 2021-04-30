@@ -22,7 +22,7 @@ jobs:
       with:
         dotnet-version: 3.0.x
     - name: Install MFP
-      run: dotnet tool install --global mfp --version 0.2.3
+      run: dotnet tool install --global mfp --version 0.2.4
     - shell: bash
       env:
         DAYS_BACK_DEFAULT: 5
