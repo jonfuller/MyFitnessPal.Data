@@ -5,9 +5,9 @@ on:
     - cron:  '12 3 * * *'
   workflow_dispatch:
     inputs:
-          days-back:
-            description: 'Number of days back to go'
-            required: false
+      days-back:
+        description: 'Number of days back to go'
+        required: false
 jobs:
   build:
 
