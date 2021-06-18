@@ -31,7 +31,7 @@ jobs:
       run: |
         mfp export --num-days="${{ github.event.inputs.days-back || env.DAYS_BACK_DEFAULT }}" --format=csv --username="$MFP_USERNAME" --password="$MFP_PASSWORD" > mfp-${{steps.date.outputs.date}}.csv
     - name: upload to azure
-      uses: bacongobbler/azure-blob-storage-upload@v1.1.1
+      uses: bacongobbler/azure-blob-storage-upload@v1.2.0
       with:
         source_dir: .
         container_name: mfp
